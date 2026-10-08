@@ -84,7 +84,7 @@ function tick(ts){
   }else{t=n.toLocaleDateString('en-GB');r=[[p2(n.getHours()),'hours'],[p2(n.getMinutes()),'min'],[p2(n.getSeconds()),'sec'],[p2(n.getMilliseconds(),3),'ms']]}
   titleEl.textContent=t;rowsEl.innerHTML=r.map(([v,l])=>`<div class="row"><b>${v}</b><i>${l}</i></div>`).join('');
  }
- if(n-lastV>1000){lastV=+n;const v=D.override||variant(n);if(v!==cur){first?Scene.set(v):Scene.goto(v);first=false;cur=v}markState()}
+ if(n-lastV>1000){lastV=+n;if(wDay!==n.toDateString())weather();const v=D.override||variant(n);if(v!==cur){first?Scene.set(v):Scene.goto(v);first=false;cur=v}markState()}
  Scene.frame(ts);
  requestAnimationFrame(tick);
 }
@@ -121,11 +121,11 @@ function runBoard(){
 }
 
 async function loadSpecial(){try{const s=await(await fetch('/api/special')).json();C.events.solar=[...new Set([...(C.events.solar||[]),...s.solar])]}catch{}}
-let cur,lastV=0,W=null,first=true;
-async function weather(){try{W=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=weather_code,wind_speed_10m,cloud_cover&hourly=precipitation&past_hours=3&forecast_hours=1&daily=sunrise,sunset&forecast_days=1&timezone=auto`)).json()}catch{}}
+let cur,lastV=0,W=null,first=true,wDay='';
+async function weather(){wDay=new Date().toDateString();try{W=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=weather_code,wind_speed_10m,cloud_cover&hourly=precipitation&past_hours=3&forecast_hours=1&daily=sunrise,sunset&forecast_days=1&timezone=auto`)).json()}catch{}}
 function variant(n){
  const ymd=`${n.getFullYear()}-${p2(n.getMonth()+1)}-${p2(n.getDate())}`,md=ymd.slice(5),mo=n.getMonth(),h=n.getHours()+n.getMinutes()/60;
- const rise=W?.daily?new Date(W.daily.sunrise[0]):new Date(n.getFullYear(),mo,n.getDate(),6),set=W?.daily?new Date(W.daily.sunset[0]):new Date(n.getFullYear(),mo,n.getDate(),18),M=6e4;
+ const at=(str,d)=>{const[hh,mm]=(str?str.slice(11,16):d).split(':');return new Date(n.getFullYear(),mo,n.getDate(),+hh,+mm)},rise=at(W?.daily?.sunrise?.[0],'06:00'),set=at(W?.daily?.sunset?.[0],'18:00'),M=6e4;
  const night=n<rise-45*M||n>set+45*M,E=C.events;
  let hs=0;for(const c of ymd)hs=(hs*31+c.charCodeAt(0))>>>0;
  const wc=W?.current?.weather_code??0,wind=W?.current?.wind_speed_10m||0,cloud=W?.current?.cloud_cover||0;
