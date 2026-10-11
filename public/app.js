@@ -33,16 +33,20 @@ const p2=(n,l=2)=>String(n).padStart(l,'0');
 
 /* ---------- rectangle (monitor A) ---------- */
 const STATES=[['morning','🌅','Morning'],['noon','☀️','Noon'],['afternoon','🌤️','Afternoon'],['evening','🌇','Evening'],['night','🌙','Night'],['midnight','🕛','Midnight'],['dawn','🌄','Dawn'],['dusk','🌆','Dusk'],['rainy','🌧️','Rainy'],['rainbow','🌈','Rainbow'],['thunderstorm','⛈️','Thunderstorm'],['snowy','❄️','Snowy'],['foggy','🌫️','Foggy'],['overcast','☁️','Overcast'],['aurora','🌌','Aurora'],['meteor_shower','☄️','Meteor Shower'],['blood_moon','🩸','Blood Moon'],['solar','🌘','Solar Eclipse'],['autumn_wind','🍂','Autumn Wind'],['cherry_blossom','🌸','Cherry Blossom']];
-let sub,resetBtn;
+let sub,resetBtn,ctlEl,swBtn;
 const markState=()=>{if(!sub)return;sub.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.k===cur));resetBtn.classList.toggle('on',!D.override)};
 let R,bigEl,titleEl,rowsEl,form,fm=null,codeBtn;
 function buildRect(){
  const q=C.layout.A.rect;R=mk('div','rect',st);place(R,q);
- const disp=mk('div','disp',R);titleEl=mk('div','ttl',disp);rowsEl=mk('div','rows',disp);bigEl=disp;form=mk('div','form',R);
+ const disp=mk('div','disp',R);titleEl=mk('div','ttl',disp);rowsEl=mk('div','rows',disp);ctlEl=mk('div','ctl',disp);swBtn=mk('button','',ctlEl);
+ swBtn.onclick=()=>{const w=D.sw||(D.sw={running:false,start:0,acc:0});if(w.running){w.acc+=Date.now()-w.start;w.running=false}else{w.start=Date.now();w.running=true}save()};
+ mk('button','',ctlEl,'⟲').onclick=()=>{D.sw={running:false,start:0,acc:0};save()};
+ bigEl=disp;form=mk('div','form',R);
  const m=mk('div','menu',R);
  const b=(ic,t,f,cls)=>{const x=mk('button',cls||'',m,ic);x.title=t;x.onclick=f;return x},dv=()=>mk('div','dv',m);
  b('🕒','Clock',()=>{D.mode='clock';save()});
  b('⏳','Countdown',()=>{D.mode='countdown';save()});
+ b('⏱️','Stopwatch',()=>{D.mode='stopwatch';save()});
  dv();
  b('➕','New event',()=>{fm='new';renderForm()});
  b('✏️','Rename event',()=>{if(D.event){fm='rename';renderForm()}});
@@ -81,8 +85,8 @@ function tick(ts){
    if(!D.event){t='No event';r=[]}
    else{const d=new Date(D.event.at)-n;t=D.event.title;
     r=d<=0?[['Reached!','']]:[[Math.floor(d/864e5),'days'],[p2(Math.floor(d/36e5)%24),'hours'],[p2(Math.floor(d/6e4)%60),'min'],[p2(Math.floor(d/1e3)%60),'sec'],[p2(d%1000,3),'ms']]}
-  }else{t=n.toLocaleDateString('en-GB');r=[[p2(n.getHours()),'hours'],[p2(n.getMinutes()),'min'],[p2(n.getSeconds()),'sec'],[p2(n.getMilliseconds(),3),'ms']]}
-  titleEl.textContent=t;rowsEl.innerHTML=r.map(([v,l])=>`<div class="row"><b>${v}</b><i>${l}</i></div>`).join('');
+  }else if(D.mode==='stopwatch'){const w=D.sw||{},e=(w.acc||0)+(w.running?Date.now()-w.start:0);t='Stopwatch';r=[[p2(Math.floor(e/36e5)),'hours'],[p2(Math.floor(e/6e4)%60),'min'],[p2(Math.floor(e/1e3)%60),'sec'],[p2(e%1000,3),'ms']]}else{t=n.toLocaleDateString('en-GB');r=[[p2(n.getHours()),'hours'],[p2(n.getMinutes()),'min'],[p2(n.getSeconds()),'sec'],[p2(n.getMilliseconds(),3),'ms']]}
+  titleEl.textContent=t;ctlEl.style.display=D.mode==='stopwatch'?'flex':'none';swBtn.textContent=D.sw?.running?'⏸':'▶';rowsEl.innerHTML=r.map(([v,l])=>`<div class="row"><b>${v}</b><i>${l}</i></div>`).join('');
  }
  if(n-lastV>1000){lastV=+n;if(wDay!==n.toDateString())weather();const v=D.override||variant(n);if(v!==cur){first?Scene.set(v):Scene.goto(v);first=false;cur=v}markState()}
  Scene.frame(ts);
